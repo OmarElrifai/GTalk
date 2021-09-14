@@ -32,16 +32,16 @@ app.use(express.static("public"));
 mongoose.connect("mongodb+srv://Rif:dolkadoz40@mflix.n3dih.mongodb.net/Gtalkdb",{useNewUrlParser: true, useUnifiedTopology: true})
 
 
-const store = new MongoDBStore({
-  uri:"mongodb://localhost:27017/Gtalkdb",
-  collection:"Sessions"
-})
+// const store = new MongoDBStore({
+//   uri:"mongodb://localhost:27017/Gtalkdb",
+//   collection:"Sessions"
+// })
 
 app.use(session({
   secret:'high perminant security',
   resave:false,
-  saveUninitialized:false,
-  store:store
+  saveUninitialized:false
+  // store:store
 }))
 
 app.use(passport.initialize());
