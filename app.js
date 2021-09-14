@@ -30,7 +30,7 @@ app.use(express.static("public"));
 
 
 mongoose.connect("mongodb+srv://Rif:dolkadoz40@mflix.n3dih.mongodb.net/Gtalkdb",{useNewUrlParser: true, useUnifiedTopology: true})
-mongoose.set("useCreateIndex",true);
+
 
 const store = new MongoDBStore({
   uri:"mongodb://localhost:27017/Gtalkdb",
