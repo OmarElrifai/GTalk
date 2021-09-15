@@ -13,35 +13,35 @@ const app = express();
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.json());
 app.use(express.static("public"));
-app.use((req,res,next)=>{
-    res.header("Access-Control-Allow-Origin","http://localhost:3000");
-    res.header(
-        "Access-Control-Allow-Headers",
-        "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-    );
-    res.header("Access-Control-Allow-Credentials", "true")
-    if (req.method === "OPTIONS"){
-        res.header("Access-Control-Allow-Methods","PUT, POST, PATCH, DELETE, GET");
-        return res.status(200).json({});
-    }
-    next();
-});
+// app.use((req,res,next)=>{
+//     res.header("Access-Control-Allow-Origin","http://localhost:3000");
+//     res.header(
+//         "Access-Control-Allow-Headers",
+//         "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+//     );
+//     res.header("Access-Control-Allow-Credentials", "true")
+//     if (req.method === "OPTIONS"){
+//         res.header("Access-Control-Allow-Methods","PUT, POST, PATCH, DELETE, GET");
+//         return res.status(200).json({});
+//     }
+//     next();
+// });
 
 
 
 mongoose.connect("mongodb+srv://Rif:dolkadoz40@mflix.n3dih.mongodb.net/Gtalkdb",{useNewUrlParser: true, useUnifiedTopology: true})
 
 
-const store = new MongoDBStore({
-  uri:"mongodb+srv://Rif:dolkadoz40@mflix.n3dih.mongodb.net/Gtalkdb",
-  collection:"Sessions"
-})
+// const store = new MongoDBStore({
+//   uri:"mongodb+srv://Rif:dolkadoz40@mflix.n3dih.mongodb.net/Gtalkdb",
+//   collection:"Sessions"
+// })
 
 app.use(session({
   secret:'high perminant security',
   resave:false,
-  saveUninitialized:false,
-  store:store
+  saveUninitialized:false
+  // store:store
 }))
 
 app.use(passport.initialize());
