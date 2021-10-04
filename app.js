@@ -19,7 +19,7 @@ let picture ='';
 let assignurl = false;
 const storage = multer.diskStorage({
   destination:(req,file, cb)=>{
-    cb(null,__dirname+"/upload/")
+    cb(null,"./upload/")
   },
   filename:(req,file,cb)=>{
     cb(null,file.originalname)
@@ -63,7 +63,7 @@ app.use(express.json());
 // app.use(express.static('website'));
 app.use("/upload",express.static("upload"));
 app.use((req,res,next)=>{
-    res.header("Access-Control-Allow-Origin","https://gtalk-b4978.web.app");
+    res.header("Access-Control-Allow-Origin","*");
     res.header(
         "Access-Control-Allow-Headers",
         "Origin, X-Requested-With, Content-Type, Accept, Authorization"
