@@ -61,7 +61,7 @@ const upload = multer({
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.json());
 // app.use(express.static('website'));
-app.use("/upload",express.static("upload"));
+app.use("/app/upload",express.static("upload"));
 app.use((req,res,next)=>{
     res.header("Access-Control-Allow-Origin","https://gtalk-b4978.web.app");
     res.header(
