@@ -19,7 +19,7 @@ let picture ='';
 let assignurl = false;
 const storage = multer.diskStorage({
   destination:(req,file, cb)=>{
-    cb(null,"./upload/")
+    cb(null,__dirname+"/upload/")
   },
   filename:(req,file,cb)=>{
     cb(null,file.originalname)
