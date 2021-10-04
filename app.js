@@ -10,6 +10,7 @@ const LocalStrategy = require('passport-local').Strategy;
 const crypto = require("crypto");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const app = express();
+const cors = require("cors");
 const multer = require("multer");
 let uploadsPhoto =[];
 let pic = {
@@ -17,6 +18,7 @@ let pic = {
 };
 let picture ='';
 let assignurl = false;
+app.use(cors());
 const storage = multer.diskStorage({
   destination:(req,file, cb)=>{
     cb(null,"./upload/")
@@ -62,19 +64,19 @@ app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.json());
 // app.use(express.static('website'));
 app.use("/upload",express.static("upload"));
-app.use((req,res,next)=>{
-    res.header("Access-Control-Allow-Origin","*");
-    res.header(
-        "Access-Control-Allow-Headers",
-        "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-    );
-    res.header("Access-Control-Allow-Credentials", "true")
-    if (req.method === "OPTIONS"){
-        res.header("Access-Control-Allow-Methods","PUT, POST, PATCH, DELETE, GET");
-        return res.status(200).json({});
-    }
-    next();
-});
+// app.use((req,res,next)=>{
+//     res.header("Access-Control-Allow-Origin","*");
+//     res.header(
+//         "Access-Control-Allow-Headers",
+//         "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+//     );
+//     res.header("Access-Control-Allow-Credentials", "true")
+//     if (req.method === "OPTIONS"){
+//         res.header("Access-Control-Allow-Methods","PUT, POST, PATCH, DELETE, GET");
+//         return res.status(200).json({});
+//     }
+//     next();
+// });
 
 
 
