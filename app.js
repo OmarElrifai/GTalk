@@ -10,11 +10,60 @@ const LocalStrategy = require('passport-local').Strategy;
 const crypto = require("crypto");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const app = express();
+const multer = require("multer");
+let uploadsPhoto =[];
+let pic = {
+  path:""
+};
+let picture ='';
+let assignurl = false;
+const storage = multer.diskStorage({
+  destination:(req,file, cb)=>{
+    cb(null,"./upload/")
+  },
+  filename:(req,file,cb)=>{
+    cb(null,file.originalname)
+  }
+})
+const fileFilter=(req,file,cb)=>{
+  //  uploadsPhoto.forEach((photo)=>{
+  //      if(file.originalname==photo){
+  //        picture = true
+  //      }else{
+  //        null
+  //      }
+  //  })
+  
+   if(picture == true && uploadsPhoto.indexOf(file.originalname)!= -1 ){
+    assignurl=false;
+     cb(null,false);
+   }else if(picture == true && uploadsPhoto.indexOf(file.originalname)== -1){
+    picture=true;
+    assignurl=true;
+    // uploadsPhoto.push(file.originalname)
+     cb(null,true)
+   }else{
+    picture=true;
+    assignurl=true;
+    // uploadsPhoto.push(file.originalname)
+     cb(null,true)
+   }
+   console.log("picture inside filter:")
+   console.log(picture)
+}
+const upload = multer({
+  storage:storage,
+  fileFilter:fileFilter
+});
+
+
+
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.json());
-app.use(express.static("public"));
+// app.use(express.static('website'));
+app.use("/upload",express.static("upload"));
 app.use((req,res,next)=>{
-    res.header("Access-Control-Allow-Origin","https://gtalk-b4978.web.app");
+    res.header("Access-Control-Allow-Origin","https://gtalk-b4978.web.app/");
     res.header(
         "Access-Control-Allow-Headers",
         "Origin, X-Requested-With, Content-Type, Accept, Authorization"
@@ -30,6 +79,7 @@ app.use((req,res,next)=>{
 
 
 mongoose.connect("mongodb+srv://Rif:dolkadoz40@mflix.n3dih.mongodb.net/Gtalkdb",{useNewUrlParser: true, useUnifiedTopology: true})
+// mongoose.connect("mongodb://localhost:27017/Gtalkdb",{useNewUrlParser: true, useUnifiedTopology: true})
 
 
 // const store = new MongoDBStore({
@@ -167,6 +217,35 @@ const outh = (req,res,next) =>{
 //   })
 // })
 
+let url=""
+app.post("/stats",upload.single("photo"),function(req,res){
+  console.log("picture inside path:")
+  // console.log(req.file) 
+  // console.log(uploadsPhoto)
+  if(assignurl) {
+    pic = req.file;
+    url= pic.path;
+    uploadsPhoto.push(pic.originalname)
+  }
+  res.send("Photo uploaded sucessfully")
+})
+app.post("/updatephoto/:id",upload.single("photo"),(req,res)=>{
+  const id = req.params.id
+  User.findOneAndUpdate({_id:id, "photos.isMain":true},{$set:{"photos.$.url":req.file.path}},(err)=>{
+      err? console.log(err):null;
+      picture='';
+      console.log("Successfully updated")
+      res.send("Successfully updated")
+  })
+  postCollection.updateMany({"user._id":id, "user.photos.isMain":true},{$set:{"photos.$.url":req.file.path}},(err)=>{
+     err?console.log(err):console.log("all profiles updated successfully");
+  })
+})
+
+app.get('/form',(req,res)=>{
+ res.sendFile(__dirname+'/website/form.html')
+})
+
 app.route("/")
     
 .post((req,res)=>{
@@ -215,7 +294,10 @@ app.get("/secrets",function(req,res){
 app.route("/register")
 .post(function(req,res){
   const post = req.body;
+  console.log("picture inside /register")
+   console.log(picture);
    console.log(post);
+   
    if(post.Username){
      User.findOne({Username:post.Username},(err,user)=>{
       err ? console.log(err.message):null; 
@@ -231,17 +313,28 @@ app.route("/register")
           AuthSuccess:false
         })
        }else{
-        if(post.Hash && post.Interests && post.photos[0].url){
+        
+        // console.log("url:")
+        // console.log(url)
+        
+        
+        if(post.Hash && post.Interests && picture ){
           const user = new User(post);
           user.Salt = crypto.randomBytes(255).toString('hex');
           const Hash = crypto.pbkdf2Sync(user.Hash,user.Salt,10000,255,'sha512').toString('hex');
           user.Hash = Hash;
+          user.photos[0]={
+            url:url,
+            isMain:true
+          }
           user.save((err)=>{
             if(err){ 
             res.send(err.message);
             console.log(err.message)
            }else{
              req.session.isAuth = true;
+             picture=false;
+             uploadsPhoto=[];
              res.send({
               User:user,
               UsernameExist:"",
@@ -254,7 +347,7 @@ app.route("/register")
             });  
            }
           });
-         }else if(post.Hash && !post.Interests && post.photos[0].url){
+         }else if(!post.Hash && !post.Interests && picture){
           res.send({
             User:{},
             UsernameExist:"",
@@ -265,7 +358,7 @@ app.route("/register")
             ProfilePic:"",
             AuthSuccess:false
           })
-         }else if(post.Hash && post.Interests && !post.photos[0].url){
+         }else if(!post.Hash && post.Interests && !picture){
           res.send({
             User:{},
             UsernameExist:"",
@@ -273,10 +366,21 @@ app.route("/register")
             PasswordExist:"Password must be provided",
             LoginFail:"",
             Interests:"",
-            ProfilePic:"Please provide a url for any online photo like facebook or twitter",
+            ProfilePic:"Please upload a picture",
             AuthSuccess:false
           })
-         }else if(!post.Hash && post.Interests && post.photos[0].url){
+         }else if(post.Hash && !post.Interests && !picture){
+          res.send({
+            User:{},
+            UsernameExist:"",
+            UsernameAlready:"",
+            PasswordExist:"",
+            LoginFail:"",
+            Interests:"Please write your interests",
+            ProfilePic:"Please upload a picture",
+            AuthSuccess:false
+          })
+         }else if(!post.Hash && post.Interests && picture){
           res.send({
             User:{},
             UsernameExist:"",
@@ -285,6 +389,28 @@ app.route("/register")
             LoginFail:"",
             Interests:"",
             ProfilePic:"",
+            AuthSuccess:false
+          })
+         }else if(post.Hash && !post.Interests && picture){
+          res.send({
+            User:{},
+            UsernameExist:"",
+            UsernameAlready:"",
+            PasswordExist:"",
+            LoginFail:"",
+            Interests:"Please write your interests",
+            ProfilePic:"",
+            AuthSuccess:false
+          })
+         }else if(post.Hash && post.Interests && !picture){
+          res.send({
+            User:{},
+            UsernameExist:"",
+            UsernameAlready:"",
+            PasswordExist:"",
+            LoginFail:"",
+            Interests:"",
+            ProfilePic:"Please upload a picture",
             AuthSuccess:false
           })
          }else{
@@ -295,7 +421,7 @@ app.route("/register")
             PasswordExist:"Password must be provided",
             LoginFail:"",
             Interests:"Please specify your interests/hobbies",
-            ProfilePic:"Please provide a url for any online photo like facebook or twitter",
+            ProfilePic:"Please upload a picture",
             AuthSuccess:false
           })
          }
@@ -320,6 +446,16 @@ app.route("/register")
 })
 .get((req,res)=>{ 
 res.sendFile(__dirname+"/register.html");
+})
+
+app.patch("/update/:id",(req,res)=>{
+    User.update(
+      {_id:req.params.id},
+      {$set:req.body},
+      (err)=>{
+        err? console.log(err):res.send("updated successfully");
+      }
+      )
 })
 
 app.route("/login")
@@ -411,17 +547,19 @@ app.post("/post/:id",(req,res)=>{
   //           photos: [],
   //           Posts:"is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset"
   //         },
-  //      posts:"kosdeek abouk"   
+  //        
   // })
   // post.save((err,entry)=>{
   //          !err? console.log(entry):console.log(err);
   //       });
 })
-
+const result =[];
 app.get("/getposts",async(req,res)=>{
  const posts = await postCollection.find()
   try {
-    const reversed =  posts.reverse();
+    
+    
+    const reversed = posts.reverse();
     res.send(reversed)
   } catch(err){
      console.log(err)
