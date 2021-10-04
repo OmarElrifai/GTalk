@@ -218,16 +218,20 @@ const outh = (req,res,next) =>{
 // })
 
 let url=""
-app.post("/stats",upload.single("photo"),function(req,res){
+app.post("/stats",upload.single("photo"),function async (req,res){
   console.log("picture inside path:")
   // console.log(req.file) 
+  
   // console.log(uploadsPhoto)
+  try{
   if(assignurl) {
-    pic = req.file;
-    url= pic.path;
-    uploadsPhoto.push(pic.originalname)
+  
+    url= await req.file.path;
+    uploadsPhoto.push(req.file.originalname)
   }
+
   res.send("Photo uploaded sucessfully")
+} catch(err){console.log(err)}
 })
 app.post("/updatephoto/:id",upload.single("photo"),(req,res)=>{
   const id = req.params.id
