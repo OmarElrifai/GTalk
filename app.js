@@ -3,6 +3,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const session = require("express-session");
+const path = require("path");
 const MongoDBStore = require("connect-mongodb-session")(session);
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
@@ -12,66 +13,103 @@ const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const app = express();
 const cors = require("cors");
 const multer = require("multer");
-let uploadsPhoto =[];
-let pic = {
-  path:""
-};
-let picture ='';
-let assignurl = false;
+const {GridFsStorage} = require("multer-gridfs-storage");
+const Grid = require("gridfs-stream");
+const methodOverride =require('method-override');
+
+// let uploadsPhoto =[];
+// let pic = {
+//   path:""
+// };
+let picture ="";
+// let assignurl = false;
+
+// const storage = multer.diskStorage({
+//   destination:(req,file, cb)=>{
+//     cb(null,__dirname+"/upload/")
+//   },
+//   filename:(req,file,cb)=>{
+//     cb(null,file.originalname)
+//   }
+// })
+// const fileFilter=(req,file,cb)=>{
+//   //  uploadsPhoto.forEach((photo)=>{
+//   //      if(file.originalname==photo){
+//   //        picture = true
+//   //      }else{
+//   //        null
+//   //      }
+//   //  })
+  
+//    if(picture == true && uploadsPhoto.indexOf(file.originalname)!= -1 ){
+//     assignurl=false;
+//      cb(null,false);
+//    }else if(picture == true && uploadsPhoto.indexOf(file.originalname)== -1){
+//     picture=true;
+//     assignurl=true;
+//     // uploadsPhoto.push(file.originalname)
+//      cb(null,true)
+//    }else{
+//     picture=true;
+//     assignurl=true;
+//     // uploadsPhoto.push(file.originalname)
+//      cb(null,true)
+//    }
+//    console.log("picture inside filter:")
+//    console.log(picture)
+// }
+// const upload = multer({
+//   storage:storage,
+//   fileFilter:fileFilter
+// });
+
+app.use(methodOverride('_method'))
 app.use(cors({
   origin:"https://gtalk-b4978.web.app",
   credentials:true,
 }))
-const storage = multer.diskStorage({
-  destination:(req,file, cb)=>{
-    cb(null,__dirname+"/upload/")
-  },
-  filename:(req,file,cb)=>{
-    cb(null,file.originalname)
-  }
-})
-const fileFilter=(req,file,cb)=>{
-  //  uploadsPhoto.forEach((photo)=>{
-  //      if(file.originalname==photo){
-  //        picture = true
-  //      }else{
-  //        null
-  //      }
-  //  })
-  
-   if(picture == true && uploadsPhoto.indexOf(file.originalname)!= -1 ){
-    assignurl=false;
-     cb(null,false);
-   }else if(picture == true && uploadsPhoto.indexOf(file.originalname)== -1){
-    picture=true;
-    assignurl=true;
-    // uploadsPhoto.push(file.originalname)
-     cb(null,true)
-   }else{
-    picture=true;
-    assignurl=true;
-    // uploadsPhoto.push(file.originalname)
-     cb(null,true)
-   }
-   console.log("picture inside filter:")
-   console.log(picture)
-}
-const upload = multer({
-  storage:storage,
-  fileFilter:fileFilter
-});
-
-
 
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(express.json());
 // app.use(express.static('website'));
-app.use("/app/upload",express.static("upload"));
+// app.use("/app/upload",express.static("upload"));
 
 
+const mongoURI = "mongodb+srv://Rif:dolkadoz40@mflix.n3dih.mongodb.net/Gtalkdb";
+// const conn = mongoose.createConnection(mongoURI,{useNewUrlParser: true, useUnifiedTopology: true});
+mongoose.connect(mongoURI,{useNewUrlParser: true, useUnifiedTopology: true})
+const conn = mongoose.connection;
+let gfs;
 
+conn.once('open',()=>{
+  gfs = Grid(conn.db, mongoose.mongo);
+  gfs.collection('uploads')
+});
 
-mongoose.connect("mongodb+srv://Rif:dolkadoz40@mflix.n3dih.mongodb.net/Gtalkdb",{useNewUrlParser: true, useUnifiedTopology: true})
+let storage = new GridFsStorage({
+  url:mongoURI,
+  file:(req,file)=>{
+    return new Promise((resolve,reject)=>{
+      crypto.randomBytes(16,(err,buf)=>{
+        if(err){
+          return reject(err);
+        }
+        const filename =buf.toString("hex")+ file.originalname;
+        const fileinfo ={
+          filename:filename,
+          bucketName:'uploads'
+        };
+        resolve(fileinfo);
+      });
+      
+    });
+    
+  }
+});
+
+const upload = multer({storage});
+
+// mongoose.connect("mongodb+srv://Rif:dolkadoz40@mflix.n3dih.mongodb.net/Gtalkdb",{useNewUrlParser: true, useUnifiedTopology: true})
 // mongoose.connect("mongodb://localhost:27017/Gtalkdb",{useNewUrlParser: true, useUnifiedTopology: true})
 
 
@@ -210,25 +248,52 @@ const outh = (req,res,next) =>{
 //   })
 // })
 
-let url=""
-app.post("/stats",upload.single("photo"),function(req,res){
-  console.log("picture inside path:")
+
+
+app.delete("/remove/:filename",(req,res)=>{
+  gfs.remove({filename:req.params.filename , root: 'uploads'},(err,file)=>{
+    err? res.send("not found photo is new"):res.send("Removed succesfully")
+  })
+});
+app.post("/stats",upload.single("photo"), (req,res)=>{
+  // console.log("picture inside path:")
   // console.log(req.file) 
   
   // console.log(uploadsPhoto)
   
-  if(assignurl) {
+  // if(assignurl) {
   
-    url= req.file.path;
-    uploadsPhoto.push(req.file.originalname)
+  //   url= req.file.path;
+  //   uploadsPhoto.push(req.file.originalname)
+  // }
+  if(req.file){
+    picture=req.file.filename;
+    res.send("success");
+  }else{
+    res.send("success");
   }
-
-  res.send("Photo uploaded sucessfully")
+  
+  
 
 })
+app.get("/image/:filename",(req,res)=>{
+  gfs.files.findOne({filename:req.params.filename},(err,file)=>{
+    if(err){
+      console.log(err)
+    }else{
+      if(file){
+      const readstream = gfs.createReadStream(file.filename);
+      readstream.pipe(res)
+      }else{
+        res.send("not found")
+      }
+    }
+  })
+})
+
 app.post("/updatephoto/:id",upload.single("photo"),(req,res)=>{
   const id = req.params.id
-  User.findOneAndUpdate({_id:id, "photos.isMain":true},{$set:{"photos.$.url":req.file.path}},(err)=>{
+  User.findOneAndUpdate({_id:id, "photos.isMain":true},{$set:{"photos.$.url":req.file.filename}},(err)=>{
       err? console.log(err):null;
       picture='';
       console.log("Successfully updated")
@@ -321,7 +386,7 @@ app.route("/register")
           const Hash = crypto.pbkdf2Sync(user.Hash,user.Salt,10000,255,'sha512').toString('hex');
           user.Hash = Hash;
           user.photos[0]={
-            url:url,
+            url:picture,
             isMain:true
           }
           user.save((err)=>{
@@ -331,7 +396,7 @@ app.route("/register")
            }else{
              req.session.isAuth = true;
              picture=false;
-             uploadsPhoto=[];
+            
              res.send({
               User:user,
               UsernameExist:"",
